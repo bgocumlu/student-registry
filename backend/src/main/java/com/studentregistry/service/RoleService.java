@@ -1,60 +1,22 @@
 package com.studentregistry.service;
 
 import com.studentregistry.entity.Role;
-import com.studentregistry.repository.RoleRepository;
- 
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
-@Service
-public class RoleService {
+public interface RoleService {
+    List<Role> getAllRoles();
 
-    private final RoleRepository roleRepository;
+    Optional<Role> getRoleById(Long id);
 
-    public RoleService(RoleRepository roleRepository) {
-        this.roleRepository = roleRepository;
-    }
+    Optional<Role> getRoleByName(String name);
 
-    public List<Role> getAllRoles() {
-        return roleRepository.findAll(Sort.by("id"));
-    }
+    Role saveRole(Role role);
 
-    public Optional<Role> getRoleById(Long id) {
-        return roleRepository.findById(id);
-    }
+    Role updateRole(Long id, Role roleDetails);
 
-    public Optional<Role> getRoleByName(String name) {
-        return roleRepository.findByName(name);
-    }
+    void deleteRole(Long id);
 
-    public Role saveRole(Role role) {
-        if (roleRepository.existsByName(role.getName())) {
-            throw new RuntimeException("Role with name '" + role.getName() + "' already exists");
-        }
-        return roleRepository.save(role);
-    }
-
-    public Role updateRole(Long id, Role roleDetails) {
-        Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Role not found with id: " + id));
-        
-        // Check if new name already exists (excluding current role)
-        if (!role.getName().equals(roleDetails.getName()) && roleRepository.existsByName(roleDetails.getName())) {
-            throw new RuntimeException("Role with name '" + roleDetails.getName() + "' already exists");
-        }
-        
-        role.setName(roleDetails.getName());
-        return roleRepository.save(role);
-    }
-
-    public void deleteRole(Long id) {
-        roleRepository.deleteById(id);
-    }
-
-    public boolean existsByName(String name) {
-        return roleRepository.existsByName(name);
-    }
+    boolean existsByName(String name);
 }

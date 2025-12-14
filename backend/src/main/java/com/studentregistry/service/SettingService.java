@@ -1,101 +1,28 @@
 package com.studentregistry.service;
 
 import com.studentregistry.entity.Setting;
-import com.studentregistry.repository.SettingRepository;
- 
-import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-@Service
-public class SettingService {
+public interface SettingService {
+    List<Setting> getAllSettings();
 
-    private final SettingRepository settingRepository;
-    private final LogService logService;
-    private final ObjectMapper objectMapper;
+    Optional<Setting> getSettingById(Long id);
 
-    public SettingService(SettingRepository settingRepository, LogService logService) {
-        this.settingRepository = settingRepository;
-        this.logService = logService;
-        this.objectMapper = new ObjectMapper();
-    }
+    Optional<Setting> getSettingByKey(String key);
 
-    public List<Setting> getAllSettings() {
-        return settingRepository.findAll();
-    }
+    Setting saveSetting(Setting setting);
 
-    public Optional<Setting> getSettingById(Long id) {
-        return settingRepository.findById(id);
-    }
+    Setting updateSetting(Long id, Setting settingDetails);
 
-    public Optional<Setting> getSettingByKey(String key) {
-        return settingRepository.findByKey(key);
-    }
+    Setting updateSettingByKey(String key, String value, String username);
 
-    public Setting saveSetting(Setting setting) {
-        return settingRepository.save(setting);
-    }
+    void deleteSetting(Long id);
 
-    public Setting updateSetting(Long id, Setting settingDetails) {
-        Setting setting = settingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Setting not found with id: " + id));
-        
-        setting.setKey(settingDetails.getKey());
-        setting.setValue(settingDetails.getValue());
-        
-        return settingRepository.save(setting);
-    }
+    void deleteSettingByKey(String key);
 
-    public Setting updateSettingByKey(String key, String value, String username) {
-        Optional<Setting> existingSetting = settingRepository.findByKey(key);
-        String oldValue = existingSetting.map(Setting::getValue).orElse(null);
-        
-        Setting saved;
-        if (existingSetting.isPresent()) {
-            Setting setting = existingSetting.get();
-            setting.setValue(value);
-            saved = settingRepository.save(setting);
-        } else {
-            Setting newSetting = new Setting(key, value);
-            saved = settingRepository.save(newSetting);
-        }
-        
-        // Log semester updates specifically
-        if ("current_semester".equals(key)) {
-            try {
-                String details = objectMapper.writeValueAsString(Map.of(
-                    "key", key,
-                    "oldValue", oldValue != null ? oldValue : "null",
-                    "newValue", value
-                ));
-                logService.logActionByUsername(username, "UPDATE_SEMESTER", details);
-            } catch (Exception e) {
-                // Logging failure shouldn't break the operation
-            }
-        }
-        
-        return saved;
-    }
+    boolean existsByKey(String key);
 
-    public void deleteSetting(Long id) {
-        settingRepository.deleteById(id);
-    }
-
-    public void deleteSettingByKey(String key) {
-        settingRepository.deleteByKey(key);
-    }
-
-    public boolean existsByKey(String key) {
-        return settingRepository.existsByKey(key);
-    }
-
-    // Utility method to get setting value with default
-    public String getSettingValue(String key, String defaultValue) {
-        return settingRepository.findByKey(key)
-                .map(Setting::getValue)
-                .orElse(defaultValue);
-    }
+    String getSettingValue(String key, String defaultValue);
 }
