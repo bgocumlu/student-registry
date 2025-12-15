@@ -158,9 +158,10 @@ const courseCodes = [
     'OS101', 'AI101', 'ML101', 'WEB101'
 ];
 
-const semesters = ['2023-Fall', '2023-Spring', '2024-Fall', '2024-Spring', '2025-Fall', '2025-Spring'];
+const semesters = ['2023-Fall', '2024-Spring', '2024-Fall', '2025-Spring', '2025-Fall'];
 const sections = ['1', '2', '3'];
-const grades = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F', null];
+const grades = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F'];
+const currentSemester = '2025-Fall';
 
 // Generate random data
 function randomElement(array) {
@@ -226,30 +227,70 @@ async function createStudents(count = 50) {
     return students;
 }
 
-// Create teachers
-async function createTeachers(count = 10) {
-    console.log(`\n👨‍🏫 Creating ${count} teachers...`);
+// Create teachers with specific departments
+async function createTeachers() {
+    console.log(`\n👨‍🏫 Creating teachers...`);
     const teachers = [];
     
-    for (let i = 0; i < count; i++) {
-        const firstName = randomElement(firstNames);
-        const lastName = randomElement(lastNames);
-        
-        const teacher = {
-            firstName,
-            lastName,
-            department: randomElement(departments),
-            email: generateEmail(firstName, lastName),
-            phone: generatePhone()
-        };
-        
-        try {
-            const created = await apiRequest('/api/teachers', 'POST', teacher);
-            teachers.push(created);
-            process.stdout.write(`✓ Created teacher ${i + 1}/${count}: ${firstName} ${lastName}\r`);
-            await delay(50);
-        } catch (error) {
-            console.error(`\n✗ Failed to create teacher ${i + 1}:`, error.message);
+    // Create teachers for each major department
+    const teachersByDepartment = {
+        'Computer Science': [
+            { firstName: 'Robert', lastName: 'Johnson' },
+            { firstName: 'Emily', lastName: 'Davis' },
+            { firstName: 'Michael', lastName: 'Wilson' }
+        ],
+        'Mathematics': [
+            { firstName: 'Sarah', lastName: 'Anderson' },
+            { firstName: 'David', lastName: 'Thompson' }
+        ],
+        'Physics': [
+            { firstName: 'Jennifer', lastName: 'Martinez' },
+            { firstName: 'James', lastName: 'Garcia' }
+        ],
+        'Chemistry': [
+            { firstName: 'Linda', lastName: 'Rodriguez' }
+        ],
+        'Biology': [
+            { firstName: 'Patricia', lastName: 'Brown' }
+        ],
+        'Engineering': [
+            { firstName: 'William', lastName: 'Miller' },
+            { firstName: 'Barbara', lastName: 'Moore' }
+        ],
+        'Business': [
+            { firstName: 'Richard', lastName: 'Taylor' }
+        ],
+        'Economics': [
+            { firstName: 'Susan', lastName: 'Thomas' }
+        ],
+        'History': [
+            { firstName: 'Joseph', lastName: 'Jackson' }
+        ],
+        'English': [
+            { firstName: 'Mary', lastName: 'White' }
+        ]
+    };
+    
+    let count = 0;
+    for (const [department, teacherList] of Object.entries(teachersByDepartment)) {
+        for (const teacher of teacherList) {
+            const teacherData = {
+                firstName: teacher.firstName,
+                lastName: teacher.lastName,
+                department,
+                email: generateEmail(teacher.firstName, teacher.lastName),
+                phone: generatePhone()
+            };
+            
+            try {
+                const created = await apiRequest('/api/teachers', 'POST', teacherData);
+                teachers.push(created);
+                count++;
+                process.stdout.write(`✓ Created teacher ${count}: ${teacher.firstName} ${teacher.lastName} (${department})\r`);
+                await delay(50);
+            } catch (error) {
+                console.error(`\n✗ Failed to create teacher ${count}:`, error.message);
+            }
         }
     }
     
@@ -257,41 +298,67 @@ async function createTeachers(count = 10) {
     return teachers;
 }
 
-// Create courses
-async function createCourses(count = 20, teachers = []) {
-    console.log(`\n📖 Creating ${count} courses...`);
+// Create courses with proper teacher assignments
+async function createCourses(teachers = []) {
+    console.log(`\n📖 Creating courses...`);
     const courses = [];
     
-    for (let i = 0; i < count; i++) {
-        const courseCode = courseCodes[i % courseCodes.length];
-        const courseName = courseNames[i % courseNames.length];
-        const section = randomElement(sections);
-        const semester = randomElement(semesters);
-        const teacher = teachers.length > 0 ? randomElement(teachers) : null;
-        
-        const course = {
-            courseCode: courseCode,
-            section,
-            courseName,
-            description: `This course covers the fundamentals of ${courseName.toLowerCase()}.`,
-            credit: randomInt(2, 4),
-            department: randomElement(departments),
-            semester,
-            teacherId: teacher ? teacher.id : null,
-            status: randomElement(['active', 'active', 'inactive']) // More active courses
-        };
-        
-        try {
-            const created = await apiRequest('/api/courses', 'POST', course);
-            if (created) {
-                courses.push(created);
-                process.stdout.write(`✓ Created course ${i + 1}/${count}: ${courseCode} Section ${section}\r`);
-            } else {
-                console.error(`\n✗ Failed to create course ${i + 1}: Empty response from server`);
+    // Define courses with their departments
+    const courseDefs = [
+        { code: 'CS101', name: 'Introduction to Programming', dept: 'Computer Science', credit: 3, semesters: ['2024-Fall', '2025-Spring'] },
+        { code: 'CS201', name: 'Data Structures', dept: 'Computer Science', credit: 4, semesters: ['2024-Fall', '2025-Spring', '2025-Fall'] },
+        { code: 'CS301', name: 'Algorithms', dept: 'Computer Science', credit: 4, semesters: ['2024-Spring', '2025-Fall'] },
+        { code: 'CS401', name: 'Database Systems', dept: 'Computer Science', credit: 3, semesters: ['2024-Spring', '2025-Spring'] },
+        { code: 'WEB101', name: 'Web Development', dept: 'Computer Science', credit: 3, semesters: ['2024-Fall', '2025-Fall'] },
+        { code: 'AI101', name: 'Artificial Intelligence', dept: 'Computer Science', credit: 4, semesters: ['2025-Spring'] },
+        { code: 'MATH101', name: 'Calculus I', dept: 'Mathematics', credit: 4, semesters: ['2023-Fall', '2024-Fall', '2025-Fall'] },
+        { code: 'MATH201', name: 'Calculus II', dept: 'Mathematics', credit: 4, semesters: ['2024-Spring', '2025-Spring'] },
+        { code: 'MATH301', name: 'Linear Algebra', dept: 'Mathematics', credit: 3, semesters: ['2024-Fall', '2025-Fall'] },
+        { code: 'STAT101', name: 'Statistics', dept: 'Mathematics', credit: 3, semesters: ['2024-Spring', '2025-Spring', '2025-Fall'] },
+        { code: 'PHYS101', name: 'Physics I', dept: 'Physics', credit: 4, semesters: ['2024-Fall', '2025-Fall'] },
+        { code: 'PHYS201', name: 'Physics II', dept: 'Physics', credit: 4, semesters: ['2024-Spring', '2025-Spring'] },
+        { code: 'CHEM101', name: 'Chemistry Fundamentals', dept: 'Chemistry', credit: 4, semesters: ['2024-Fall', '2025-Fall'] },
+        { code: 'BIO101', name: 'Biology 101', dept: 'Biology', credit: 3, semesters: ['2024-Spring', '2025-Spring', '2025-Fall'] },
+        { code: 'ENG101', name: 'Engineering Mechanics', dept: 'Engineering', credit: 3, semesters: ['2024-Fall', '2025-Spring'] },
+        { code: 'BUS101', name: 'Business Fundamentals', dept: 'Business', credit: 3, semesters: ['2024-Spring', '2025-Fall'] },
+        { code: 'ECON101', name: 'Microeconomics', dept: 'Economics', credit: 3, semesters: ['2024-Fall', '2025-Spring'] },
+        { code: 'HIST101', name: 'World History', dept: 'History', credit: 3, semesters: ['2024-Spring', '2025-Fall'] },
+        { code: 'ENGL101', name: 'English Composition', dept: 'English', credit: 3, semesters: ['2023-Fall', '2024-Fall', '2025-Fall'] }
+    ];
+    
+    let count = 0;
+    for (const courseDef of courseDefs) {
+        for (const semester of courseDef.semesters) {
+            // Find a teacher from the same department
+            const departmentTeachers = teachers.filter(t => t.department === courseDef.dept);
+            const teacher = departmentTeachers.length > 0 ? randomElement(departmentTeachers) : randomElement(teachers);
+            
+            const section = randomElement(sections);
+            const course = {
+                courseCode: courseDef.code,
+                section,
+                courseName: courseDef.name,
+                description: `This course covers the fundamentals of ${courseDef.name.toLowerCase()}.`,
+                credit: courseDef.credit,
+                department: courseDef.dept,
+                semester,
+                teacherId: teacher ? teacher.id : null,
+                status: semester === currentSemester ? 'active' : (Math.random() > 0.3 ? 'active' : 'inactive')
+            };
+            
+            try {
+                const created = await apiRequest('/api/courses', 'POST', course);
+                if (created) {
+                    courses.push(created);
+                    count++;
+                    process.stdout.write(`✓ Created course ${count}: ${courseDef.code}-${section} ${semester}\r`);
+                } else {
+                    console.error(`\n✗ Failed to create course: Empty response from server`);
+                }
+                await delay(50);
+            } catch (error) {
+                console.error(`\n✗ Failed to create course:`, error.message);
             }
-            await delay(50);
-        } catch (error) {
-            console.error(`\n✗ Failed to create course ${i + 1}:`, error.message);
         }
     }
     
@@ -300,27 +367,55 @@ async function createCourses(count = 20, teachers = []) {
 }
 
 // Create enrollments
-async function createEnrollments(students = [], courses = [], countPerStudent = 3) {
-    console.log(`\n📝 Creating enrollments (${countPerStudent} courses per student)...`);
+async function createEnrollments(students = [], courses = []) {
+    console.log(`\n📝 Creating enrollments...`);
     let enrollmentCount = 0;
-    const totalEnrollments = students.length * countPerStudent;
     
     for (const student of students) {
-        // Randomly select courses for each student
-        const shuffledCourses = [...courses].sort(() => Math.random() - 0.5);
-        const studentCourses = shuffledCourses.slice(0, Math.min(countPerStudent, courses.length));
+        // Determine student's year based on enrollment year
+        const currentYear = 2025;
+        const yearsSinceEnrollment = currentYear - student.enrollmentYear;
         
-        for (const course of studentCourses) {
+        // Students take courses from multiple semesters based on their year
+        let relevantSemesters = [];
+        if (yearsSinceEnrollment === 0) {
+            relevantSemesters = ['2025-Fall']; // Freshmen
+        } else if (yearsSinceEnrollment === 1) {
+            relevantSemesters = ['2024-Fall', '2025-Spring', '2025-Fall']; // Sophomores
+        } else if (yearsSinceEnrollment === 2) {
+            relevantSemesters = ['2023-Fall', '2024-Spring', '2024-Fall', '2025-Spring', '2025-Fall']; // Juniors
+        } else {
+            relevantSemesters = ['2023-Fall', '2024-Spring', '2024-Fall', '2025-Spring', '2025-Fall']; // Seniors and beyond
+        }
+        
+        // Filter courses by student's department and relevant semesters
+        const studentCourses = courses.filter(c => 
+            relevantSemesters.includes(c.semester) &&
+            (c.department === student.department || 
+             c.department === 'Mathematics' || 
+             c.department === 'English' ||
+             Math.random() > 0.7) // Some random electives
+        );
+        
+        // Enroll in 3-5 courses
+        const numCourses = Math.min(randomInt(3, 5), studentCourses.length);
+        const shuffled = [...studentCourses].sort(() => Math.random() - 0.5);
+        const selectedCourses = shuffled.slice(0, numCourses);
+        
+        for (const course of selectedCourses) {
+            // Don't assign grades for current semester courses
+            const finalGrade = course.semester === currentSemester ? null : randomElement([...grades, null, null]);
+            
             const enrollment = {
                 studentId: student.id,
                 courseId: course.id,
-                finalGrade: randomElement(grades) // Some students have grades, some don't
+                finalGrade
             };
             
             try {
                 await apiRequest('/api/enrollments', 'POST', enrollment);
                 enrollmentCount++;
-                process.stdout.write(`✓ Created enrollment ${enrollmentCount}/${totalEnrollments}\r`);
+                process.stdout.write(`✓ Created enrollment ${enrollmentCount}\r`);
                 await delay(50);
             } catch (error) {
                 // Enrollment might already exist, skip
@@ -371,16 +466,19 @@ async function createAbsences(students = [], courses = [], absencesPerStudent = 
     return absenceCount;
 }
 
-// Update some grades
+// Update some grades for past semester courses only
 async function updateGrades(students = [], courses = []) {
-    console.log(`\n📊 Updating grades for enrolled students...`);
+    console.log(`\n📊 Updating grades for past semester courses...`);
     let gradeCount = 0;
     
-    for (const student of students.slice(0, Math.min(students.length, 30))) {
-        for (const course of courses.slice(0, Math.min(2, courses.length))) {
-            // Randomly assign grades
-            if (Math.random() > 0.5) {
-                const grade = randomElement(grades.filter(g => g !== null));
+    // Only update grades for courses NOT in the current semester
+    const pastCourses = courses.filter(c => c.semester !== currentSemester);
+    
+    for (const student of students.slice(0, Math.min(students.length, 40))) {
+        for (const course of pastCourses.slice(0, Math.min(3, pastCourses.length))) {
+            // 70% chance to assign a grade
+            if (Math.random() > 0.3) {
+                const grade = randomElement(grades);
                 
                 try {
                     await apiRequest(`/api/courses/${course.id}/students/${student.id}/grade`, 'PUT', {
@@ -408,21 +506,21 @@ async function main() {
     
     try {
         // Step 1: Create teachers first (needed for courses)
-        const teachers = await createTeachers(10);
+        const teachers = await createTeachers();
         
         // Step 2: Create students
         const students = await createStudents(50);
         
-        // Step 3: Create courses
-        const courses = await createCourses(20, teachers);
+        // Step 3: Create courses with proper teacher assignments
+        const courses = await createCourses(teachers);
         
-        // Step 4: Create enrollments
-        await createEnrollments(students, courses, 3);
+        // Step 4: Create realistic enrollments
+        await createEnrollments(students, courses);
         
         // Step 5: Create some absences
         await createAbsences(students, courses, 2);
         
-        // Step 6: Update some grades
+        // Step 6: Update grades for past semester courses only
         await updateGrades(students, courses);
         
         console.log('\n🎉 Mock data generation completed successfully!');
